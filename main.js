@@ -23,7 +23,7 @@ const ambientLight = new THREE.AmbientLight(0x8888ff, 0.5); // Cool ambient ligh
 scene.add(ambientLight);
 
 const pointLight = new THREE.PointLight(0xffffff, 2, 50);
-pointLight.position.set(0, 30, 0);
+pointLight.position.set(0, 10, 0);
 scene.add(pointLight);
 
 // === Crystal Floor ===
@@ -108,7 +108,7 @@ let crystalMonster = null;
 let mixer = null; // Animation mixer for the crystal monster
 
 new GLTFLoader().load(
-    "https://trystan211.github.io/ite18_act4_n/metroid_primecreaturesadult_sheegoth.glb", // Replace with the actual path to your crystalMonster model
+    "path_to_crystalMonster_model.glb", // Replace with the actual path to your crystalMonster model
     (gltf) => {
         crystalMonster = gltf.scene;
         crystalMonster.position.set(0, 0, 0);
@@ -134,6 +134,41 @@ new GLTFLoader().load(
     undefined,
     (error) => console.error("Failed to load crystalMonster model:", error)
 );
+
+// === Wide Orbiting Snow-Colored Particles ===
+const snowParticles = (() => {
+    const particleCount = 1000; // Number of particles
+    const radius = 50; // Orbit radius
+    const positions = [];
+    const speeds = [];
+
+    // Create particles
+    for (let i = 0; i < particleCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = radius + Math.random() * 10; // Spread around the radius
+        positions.push(
+            Math.cos(angle) * distance, // X
+            Math.random() * 5 - 2.5,    // Y (slight vertical spread)
+            Math.sin(angle) * distance  // Z
+        );
+        speeds.push(0.02 + Math.random() * 0.03); // Speed of orbiting
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+
+    const material = new THREE.PointsMaterial({
+        color: 0xffffff, // Snow color
+        size: 0.3,
+        transparent: true,
+        opacity: 0.8,
+    });
+
+    const points = new THREE.Points(geometry, material);
+    points.userData = { speeds, radius };
+    return points;
+})();
+scene.add(snowParticles);
 
 // === Skybox Glow ===
 const skybox = (() => {
@@ -188,10 +223,27 @@ function animate() {
         if (shard.position.z > 100 || shard.position.z < -100) shard.position.z *= -1;
     });
 
-    // Update crystalMonster animations
-    if (mixer) {
-        mixer.update(delta);
+    // Update snow particles
+    const snowPositions = snowParticles.geometry.attributes.position.array;
+    const snowSpeeds = snowParticles.userData.speeds;
+
+    for (let i = 0; i < snowPositions.length / 3; i++) {
+        const xIdx = i * 3;
+        const zIdx = i * 3 + 2;
+
+        const angle = Math.atan2(snowPositions[zIdx], snowPositions[xIdx]) + snowSpeeds[i];
+        const distance = Math.sqrt(
+            snowPositions[xIdx] ** 2 + snowPositions[zIdx] ** 2
+        );
+
+        // Update positions
+        snowPositions[xIdx] = Math.cos(angle) * distance;
+        snowPositions[zIdx] = Math.sin(angle) * distance;
     }
+    snowParticles.geometry.attributes.position.needsUpdate = true;
+
+    // Update animations
+    if (mixer) mixer.update(delta);
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
