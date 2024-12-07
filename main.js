@@ -83,7 +83,7 @@ loader.load(
     (gltf) => {
         cactus = gltf.scene;
         cactus.position.set(0, 0, 0);
-        cactus.scale.set(3, 3, 3);
+        cactus.scale.set(2, 2, 2);
         scene.add(cactus);
     },
     undefined,
@@ -147,8 +147,9 @@ function animate() {
 
     // Make the Cactus Sway (Optional, for a windy look)
     if (cactus) {
-        cactus.rotation.z = Math.sin(elapsedTime * 0.5) * 0.05;
-    }
+    cactus.rotation.z = Math.sin(elapsedTime * 0.8) * 0.2; // Increased frequency (0.8) and amplitude (0.2)
+    cactus.rotation.x = Math.cos(elapsedTime * 0.7) * 0.15; // Added tilt along the X-axis for more dynamic movement
+}
 
     // Render Scene
     renderer.render(scene, camera);
