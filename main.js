@@ -23,7 +23,7 @@ const ambientLight = new THREE.AmbientLight(0x8888ff, 0.5); // Cool ambient ligh
 scene.add(ambientLight);
 
 const pointLight = new THREE.PointLight(0xffffff, 2, 50);
-pointLight.position.set(0, 10, 0);
+pointLight.position.set(0, 30, 0);
 scene.add(pointLight);
 
 // === Crystal Floor ===
