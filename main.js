@@ -147,7 +147,7 @@ function animate() {
 
     // Make the Cactus Sway (Optional, for a windy look)
     if (cactus) {
-    cactus.rotation.z = Math.sin(elapsedTime * 0.5) * 0.5; // Increased frequency (0.5) and amplitude (0.5)
+    cactus.rotation.z = Math.sin(elapsedTime * 0.5) * 0.08; // Increased frequency (0.5) and amplitude (0.5)
 }
 
     // Render Scene
