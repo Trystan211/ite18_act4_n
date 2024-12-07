@@ -108,7 +108,7 @@ let crystalMonster = null;
 let mixer = null; // Animation mixer for the crystal monster
 
 new GLTFLoader().load(
-    "https://trystan211.github.io/ite18_fitz_act4/metroid_primecreaturesmagmoor.glb", // Replace with the actual path to your crystalMonster model
+    "https://trystan211.github.io/ite18_act4_n/metroid_primecreaturesadult_sheegoth.glb", // Replace with the actual path to your crystalMonster model
     (gltf) => {
         crystalMonster = gltf.scene;
         crystalMonster.position.set(0, 0, 0);
