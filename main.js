@@ -85,27 +85,28 @@ loader.load(
     (error) => console.error("Error loading asteroid:", error)
 );
 
-// Star Particles
+// Star Particle System
 const starCount = 8000;
 const starGeometry = new THREE.BufferGeometry();
 const starPositions = [];
 const starVelocities = [];
 
 for (let i = 0; i < starCount; i++) {
-    const x = (Math.random() - 0.5) * 500;
+    const x = (Math.random() - 0.5) * 500; // Spread across a wide space
     const y = (Math.random() - 0.5) * 500;
     const z = (Math.random() - 0.5) * 500;
     starPositions.push(x, y, z);
-    starVelocities.push(-0.1 - Math.random() * 0.2);
+    starVelocities.push(-0.1 - Math.random() * 0.2); // Slow downward drift
 }
 
 starGeometry.setAttribute("position", new THREE.Float32BufferAttribute(starPositions, 3));
 
 const starMaterial = new THREE.PointsMaterial({
-    color: 0xaaaaaa,
-    size: 0.05,
+    color: 0xffffff, // Bright white color for stars
+    size: 0.4, // Increased size for larger stars
     transparent: true,
-    opacity: 0.8,
+    opacity: 1.0, // Fully opaque for maximum brightness
+    emissive: 0xffffff, // Emits light for a glowing effect
 });
 
 const stars = new THREE.Points(starGeometry, starMaterial);
