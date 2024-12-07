@@ -4,8 +4,8 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/
 
 // Scene Setup
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000011); // Deep space color
-scene.fog = new THREE.FogExp2(0x000022, 0.01); // Nebula fog
+scene.background = new THREE.Color(0xffcc99); // Warm desert tone
+scene.fog = new THREE.Fog(0xffcc99, 20, 150); // Desert fog for depth
 
 // Renderer Setup
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -14,135 +14,140 @@ renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
 // Camera Setup
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-camera.position.set(0, 10, 30);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 15, 40);
 scene.add(camera);
 
 // Orbit Controls
 const controls = new OrbitControls(camera, renderer.domElement);
 
-// Glowing Orb Light
-const orbLight = new THREE.PointLight(0xff66ff, 2, 100); // Magenta glow
-orbLight.position.set(0, 5, 0);
-scene.add(orbLight);
+// Sun Light
+const sunLight = new THREE.PointLight(0xffaa00, 4, 200);
+sunLight.position.set(20, 50, 20);
+scene.add(sunLight);
 
-// Orbiting Light
-const orbitingLight = new THREE.PointLight(0xffffff, 1, 50);
-scene.add(orbitingLight);
+// Ground Geometry (Sand Dunes)
+const groundGeometry = new THREE.PlaneGeometry(200, 200, 300, 300);
+groundGeometry.rotateX(-Math.PI / 2);
 
-// Cosmic Nebula Plane
-const nebulaGeometry = new THREE.PlaneGeometry(100, 100, 300, 300);
-nebulaGeometry.rotateX(-Math.PI / 2);
-
-const nebulaMaterial = new THREE.ShaderMaterial({
+// Ground Shader Material
+const groundMaterial = new THREE.ShaderMaterial({
     uniforms: {
         time: { value: 0 },
-        waveHeight: { value: 1.5 },
-        waveFrequency: { value: 2.0 },
-        deepColor: { value: new THREE.Color(0x110033) },
-        glowColor: { value: new THREE.Color(0xff44ff) },
+        duneHeight: { value: 2.0 },
+        duneFrequency: { value: 0.3 },
+        sandColor: { value: new THREE.Color(0xf4a460) }, // Sand color
+        sunPosition: { value: new THREE.Vector3(20, 50, 20) },
     },
     vertexShader: `
         uniform float time;
-        uniform float waveHeight;
-        uniform float waveFrequency;
-        varying vec3 vPosition;
+        uniform float duneHeight;
+        uniform float duneFrequency;
+        varying vec2 vUv;
+
         void main() {
-            vPosition = position;
+            vUv = uv;
             vec3 pos = position;
-            pos.y += sin(pos.x * waveFrequency + time * 0.5) * waveHeight;
-            pos.y += cos(pos.z * waveFrequency + time * 0.8) * waveHeight;
+
+            // Create rolling sand dunes
+            pos.y += sin(pos.x * duneFrequency + time) * duneHeight * 0.7;
+            pos.y += cos(pos.z * duneFrequency * 1.5 + time) * duneHeight * 0.5;
+
             gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
         }
     `,
     fragmentShader: `
-        uniform vec3 deepColor;
-        uniform vec3 glowColor;
-        varying vec3 vPosition;
+        uniform vec3 sandColor;
+        uniform vec3 sunPosition;
+        varying vec2 vUv;
+
         void main() {
-            float intensity = abs(sin(vPosition.y * 10.0 + 0.5));
-            vec3 color = mix(deepColor, glowColor, intensity * 0.9);
-            gl_FragColor = vec4(color, 1.0);
+            float brightness = dot(normalize(sunPosition), vec3(0, 1, 0)) * 0.5 + 0.5; // Simulated sunlight
+            vec3 finalColor = sandColor * brightness;
+            gl_FragColor = vec4(finalColor, 1.0);
         }
     `,
-    transparent: true,
+    side: THREE.DoubleSide,
 });
 
-const nebula = new THREE.Mesh(nebulaGeometry, nebulaMaterial);
-scene.add(nebula);
+// Add Ground Mesh
+const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+scene.add(ground);
 
-// Load Asteroid Model
+// Load Cactus Model
 const loader = new GLTFLoader();
-let asteroid = null;
+let cactus = null;
+
 loader.load(
-    "https://trystan211.github.io/ite_joash-skull/low_poly_skull.glb", // Placeholder asteroid model
+    'https://trystan211.github.io/ite18_act4_n/cactus_1_downloadable.glb', // Replace with your cactus model's URL
     (gltf) => {
-        asteroid = gltf.scene;
-        asteroid.scale.set(1.5, 1.5, 1.5);
-        scene.add(asteroid);
+        cactus = gltf.scene;
+        cactus.position.set(0, 0, 0);
+        cactus.scale.set(3, 3, 3);
+        scene.add(cactus);
     },
     undefined,
-    (error) => console.error("Error loading asteroid:", error)
+    (error) => {
+        console.error("Error loading the cactus model:", error);
+    }
 );
 
-// Star Particle System
-const starCount = 8000;
-const starGeometry = new THREE.BufferGeometry();
-const starPositions = [];
-const starVelocities = [];
+// Sandstorm Geometry
+const sandCount = 10000;
+const sandGeometry = new THREE.BufferGeometry();
+const sandPositions = [];
+const sandVelocities = [];
 
-for (let i = 0; i < starCount; i++) {
-    const x = (Math.random() - 0.5) * 500; // Spread across a wide space
-    const y = (Math.random() - 0.5) * 500;
-    const z = (Math.random() - 0.5) * 500;
-    starPositions.push(x, y, z);
-    starVelocities.push(-0.1 - Math.random() * 0.2); // Slow downward drift
+for (let i = 0; i < sandCount; i++) {
+    const x = (Math.random() - 0.5) * 200;
+    const y = Math.random() * 50;
+    const z = (Math.random() - 0.5) * 200;
+    sandPositions.push(x, y, z);
+    sandVelocities.push(-0.1 - Math.random() * 0.3); // Sandstorm movement
 }
 
-starGeometry.setAttribute("position", new THREE.Float32BufferAttribute(starPositions, 3));
+sandGeometry.setAttribute("position", new THREE.Float32BufferAttribute(sandPositions, 3));
 
-const starMaterial = new THREE.PointsMaterial({
-    color: 0xffffff, // Bright white color for stars
-    size: 0.4, // Increased size for larger stars
+// Sandstorm Material
+const sandMaterial = new THREE.PointsMaterial({
+    color: 0xd2b48c, // Sandy color
+    size: 0.4,
     transparent: true,
-    opacity: 1.0, // Fully opaque for maximum brightness
-    emissive: 0xffffff, // Emits light for a glowing effect
+    opacity: 0.7,
 });
 
-const stars = new THREE.Points(starGeometry, starMaterial);
-scene.add(stars);
+// Add Sandstorm Particles
+const sandstorm = new THREE.Points(sandGeometry, sandMaterial);
+scene.add(sandstorm);
 
 // Animation Loop
 const clock = new THREE.Clock();
 function animate() {
     const elapsedTime = clock.getElapsedTime();
 
-    // Update Nebula
-    nebulaMaterial.uniforms.time.value = elapsedTime;
+    // Update Ground
+    groundMaterial.uniforms.time.value = elapsedTime;
 
-    // Update Stars
-    const starPositions = stars.geometry.attributes.position.array;
-    for (let i = 0; i < starCount; i++) {
-        starPositions[i * 3 + 1] += starVelocities[i];
-        if (starPositions[i * 3 + 1] < -250) {
-            starPositions[i * 3 + 1] = 250;
+    // Update Sandstorm
+    const positions = sandstorm.geometry.attributes.position.array;
+    for (let i = 0; i < sandCount; i++) {
+        positions[i * 3 + 1] += sandVelocities[i]; // Y-axis movement for falling effect
+        if (positions[i * 3 + 1] < 0) {
+            positions[i * 3 + 1] = 50; // Reset sand particle
         }
     }
-    stars.geometry.attributes.position.needsUpdate = true;
+    sandstorm.geometry.attributes.position.needsUpdate = true;
 
-    // Orbiting Light
-    const orbitRadius = 15;
-    orbitingLight.position.x = Math.sin(elapsedTime) * orbitRadius;
-    orbitingLight.position.z = Math.cos(elapsedTime) * orbitRadius;
-    orbitingLight.position.y = 5 + Math.sin(elapsedTime * 2);
+    // Moving Sun Light
+    sunLight.position.set(
+        20 * Math.sin(elapsedTime * 0.2),
+        50,
+        20 * Math.cos(elapsedTime * 0.2)
+    );
 
-    // Pulsating Orb Light
-    orbLight.intensity = 2 + Math.sin(elapsedTime * 5) * 0.8;
-
-    // Rotate Asteroid
-    if (asteroid) {
-        asteroid.rotation.y += 0.01;
-        asteroid.rotation.x += 0.005;
+    // Make the Cactus Sway (Optional, for a windy look)
+    if (cactus) {
+        cactus.rotation.z = Math.sin(elapsedTime * 0.5) * 0.05;
     }
 
     // Render Scene
