@@ -1,5 +1,6 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js";
 import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/loaders/GLTFLoader.js";
 
 // === Basic Scene Setup ===
 const scene = new THREE.Scene();
@@ -11,7 +12,7 @@ renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 5, 15);
+camera.position.set(0, 5, 20);
 scene.add(camera);
 
 // === Controls ===
@@ -77,12 +78,13 @@ const crystalShards = (() => {
         metalness: 0.8,
     });
 
-    for (let i = 0; i < 50; i++) {
+    const shardCount = 200; // Increased count
+    for (let i = 0; i < shardCount; i++) {
         const shard = new THREE.Mesh(shardGeometry, shardMaterial);
         shard.position.set(
-            (Math.random() - 0.5) * 30,
-            Math.random() * 10,
-            (Math.random() - 0.5) * 30
+            (Math.random() - 0.5) * 200, // Wider spread
+            Math.random() * 30,
+            (Math.random() - 0.5) * 200
         );
         shard.rotation.set(
             Math.random() * Math.PI,
@@ -90,9 +92,9 @@ const crystalShards = (() => {
             Math.random() * Math.PI
         );
         shard.userData.velocity = new THREE.Vector3(
-            (Math.random() - 0.5) * 0.02,
-            (Math.random() - 0.5) * 0.02,
-            (Math.random() - 0.5) * 0.02
+            (Math.random() - 0.5) * 0.05,
+            (Math.random() - 0.5) * 0.05,
+            (Math.random() - 0.5) * 0.05
         );
         group.add(shard);
     }
@@ -100,6 +102,38 @@ const crystalShards = (() => {
     return group;
 })();
 scene.add(crystalShards);
+
+// === Crystal Monster Model ===
+let crystalMonster = null;
+let mixer = null; // Animation mixer for the crystal monster
+
+new GLTFLoader().load(
+    "https://trystan211.github.io/ite18_fitz_act4/metroid_primecreaturesmagmoor.glb", // Replace with the actual path to your crystalMonster model
+    (gltf) => {
+        crystalMonster = gltf.scene;
+        crystalMonster.position.set(0, 0, 0);
+        crystalMonster.scale.set(5, 5, 5); // Adjust size
+        scene.add(crystalMonster);
+
+        console.log("GLTF Loaded Scene:", gltf.scene);
+        console.log("GLTF Animations:", gltf.animations);
+
+        // Set up the animation mixer
+        if (gltf.animations.length > 0) {
+            mixer = new THREE.AnimationMixer(crystalMonster);
+            gltf.animations.forEach((clip) => {
+                const action = mixer.clipAction(clip);
+                action.setLoop(THREE.LoopRepeat);
+                action.play();
+                console.log("Playing Animation Clip:", clip.name);
+            });
+        } else {
+            console.warn("No animations found in GLTF model.");
+        }
+    },
+    undefined,
+    (error) => console.error("Failed to load crystalMonster model:", error)
+);
 
 // === Skybox Glow ===
 const skybox = (() => {
@@ -149,9 +183,15 @@ function animate() {
         shard.rotation.y += delta * 0.5;
 
         // Wrap shard positions
-        if (shard.position.y > 10) shard.position.y = -10;
-        if (shard.position.y < -10) shard.position.y = 10;
+        if (shard.position.y > 30) shard.position.y = -30;
+        if (shard.position.x > 100 || shard.position.x < -100) shard.position.x *= -1;
+        if (shard.position.z > 100 || shard.position.z < -100) shard.position.z *= -1;
     });
+
+    // Update crystalMonster animations
+    if (mixer) {
+        mixer.update(delta);
+    }
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
